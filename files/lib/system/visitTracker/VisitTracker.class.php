@@ -77,10 +77,13 @@ class VisitTracker extends SingletonFactory {
 				}
 				
 				// update storage data
-				UserStorageHandler::getInstance()->update($userID, 'trackedUserVisits', $this->userVisits[$userID]);
+				UserStorageHandler::getInstance()->update($userID, 'trackedUserVisits', serialize($this->userVisits[$userID]));
 			}
 			else {
-				$this->userVisits[$userID] = $data[$userID];
+				$this->userVisits[$userID] = @unserialize($data[$userID]);
+				if (!$this->userVisits[$userID]) {
+					$this->userVisits[$userID] = array();
+				}
 			}
 		}
 		
