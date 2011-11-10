@@ -120,6 +120,28 @@ class VisitTracker extends SingletonFactory {
 		return $this->getVisitTime($objectType, $userID);
 	}
 	
+	/**
+	 * Deletes all tracked visits of a specific object type.
+	 * 
+	 * @param 	string		$objectType
+	 * @param	integer		$userID
+	 */
+	public function deleteObjectVisits($objectType, $userID) {
+		$sql = "DELETE FROM	wcf".WCF_N."_tracked_visit
+			WHERE		objectTypeID = ?
+					AND userID = ?";
+		$statement = WCF::getDB()->prepareStatement($sql);
+		$statement->execute(array($this->getObjectTypeID($objectType), $userID));
+	}
+	
+	/**
+	 * Tracks an object visit.
+	 * 
+	 * @param	string		$objectType
+	 * @param	integer		$objectID
+	 * @param	integer		$userID
+	 * @param	integer		$time
+	 */
 	public function trackObjectVisit($objectType, $objectID, $userID, $time = TIME_NOW) {
 		// delete old visit
 		$sql = "DELETE FROM	wcf".WCF_N."_tracked_visit
@@ -137,6 +159,13 @@ class VisitTracker extends SingletonFactory {
 		$statement->execute(array($this->getObjectTypeID($objectType), $objectID, $userID, $time));
 	}
 	
+	/**
+	 * Tracks an object type visit.
+	 * 
+	 * @param	string		$objectType
+	 * @param	integer		$userID
+	 * @param	integer		$time
+	 */
 	public function trackTypeVisit($objectType, $userID, $time = TIME_NOW) {
 		// delete old visit
 		$sql = "DELETE FROM	wcf".WCF_N."_tracked_visit_type
@@ -146,7 +175,7 @@ class VisitTracker extends SingletonFactory {
 		$statement->execute(array($this->getObjectTypeID($objectType), $userID));
 		
 		// save visit
-		$sql = "INSERT INTO	wcf".WCF_N."_tracked_visit
+		$sql = "INSERT INTO	wcf".WCF_N."_tracked_visit_type
 					(objectTypeID, userID, visitTime)
 			VALUES		(?, ?, ?)";
 		$statement = WCF::getDB()->prepareStatement($sql);
