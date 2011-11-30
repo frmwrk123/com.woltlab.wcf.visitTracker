@@ -59,30 +59,32 @@ class VisitTracker extends SingletonFactory {
 		if (!isset($this->userVisits[$userID])) {
 			$this->userVisits[$userID] = array();
 		
-			// get data from storage
-			UserStorageHandler::getInstance()->loadStorage(array($userID));
+			if ($userID) {
+				// get data from storage
+				UserStorageHandler::getInstance()->loadStorage(array($userID));
+						
+				// get ids
+				$data = UserStorageHandler::getInstance()->getStorage(array($userID), 'trackedUserVisits');
 					
-			// get ids
-			$data = UserStorageHandler::getInstance()->getStorage(array($userID), 'trackedUserVisits');
-				
-			// cache does not exist or is outdated
-			if ($data[$userID] === null) {
-				$sql = "SELECT 	objectTypeID, visitTime
-					FROM 	wcf".WCF_N."_tracked_visit_type
-					WHERE	userID = ?";
-				$statement = WCF::getDB()->prepareStatement($sql);
-				$statement->execute(array($userID));
-				while ($row = $statement->fetchArray()) {
-					$this->userVisits[$userID][$row['objectTypeID']] = $row['visitTime'];
+				// cache does not exist or is outdated
+				if ($data[$userID] === null) {
+					$sql = "SELECT 	objectTypeID, visitTime
+						FROM 	wcf".WCF_N."_tracked_visit_type
+						WHERE	userID = ?";
+					$statement = WCF::getDB()->prepareStatement($sql);
+					$statement->execute(array($userID));
+					while ($row = $statement->fetchArray()) {
+						$this->userVisits[$userID][$row['objectTypeID']] = $row['visitTime'];
+					}
+					
+					// update storage data
+					UserStorageHandler::getInstance()->update($userID, 'trackedUserVisits', serialize($this->userVisits[$userID]));
 				}
-				
-				// update storage data
-				UserStorageHandler::getInstance()->update($userID, 'trackedUserVisits', serialize($this->userVisits[$userID]));
-			}
-			else {
-				$this->userVisits[$userID] = @unserialize($data[$userID]);
-				if (!$this->userVisits[$userID]) {
-					$this->userVisits[$userID] = array();
+				else {
+					$this->userVisits[$userID] = @unserialize($data[$userID]);
+					if (!$this->userVisits[$userID]) {
+						$this->userVisits[$userID] = array();
+					}
 				}
 			}
 		}
