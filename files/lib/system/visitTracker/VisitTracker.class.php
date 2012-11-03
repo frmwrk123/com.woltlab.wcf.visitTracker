@@ -1,42 +1,52 @@
 <?php
 namespace wcf\system\visitTracker;
 use wcf\data\object\type\ObjectTypeCache;
+use wcf\system\database\util\PreparedStatementConditionBuilder;
 use wcf\system\exception\SystemException;
 use wcf\system\user\storage\UserStorageHandler;
 use wcf\system\SingletonFactory;
 use wcf\system\WCF;
 
+/**
+ * Handles and tracks object visits.
+ * 
+ * @author	Marcel Werk
+ * @copyright	2001-2012 WoltLab GmbH
+ * @license	GNU Lesser General Public License <http://opensource.org/licenses/lgpl-license.php>
+ * @package	com.woltlab.wcf.visitTracker
+ * @subpackage	system.visitTracker
+ * @category	Community Framework
+ */
 class VisitTracker extends SingletonFactory {
 	/**
 	 * default tracking lifetime
-	 * @var integer
+	 * @var	integer
 	 */
 	const DEFAULT_LIFETIME = 604800; // = one week
 	
 	/**
 	 * list of available object types
-	 * @var array
+	 * @var	array
 	 */
 	protected $availableObjectTypes = array();
 	
 	/**
 	 * user visits
-	 * @var array
+	 * @var	array
 	 */
 	protected $userVisits = null;
 	
 	/**
-	 * @see wcf\system\SingletonFactory::init()
+	 * @see	wcf\system\SingletonFactory::init()
 	 */
 	protected function init() {
-		// get available object types
 		$this->availableObjectTypes = ObjectTypeCache::getInstance()->getObjectTypes('com.woltlab.wcf.visitTracker.objectType');
 	}
 	
 	/**
-	 * Gets the object type id.
+	 * Return the id of the object type with the given name.
 	 * 
-	 * @param	string 		$objectType
+	 * @param	string		$objectType
 	 * @return	integer
 	 */
 	public function getObjectTypeID($objectType) {
@@ -48,7 +58,7 @@ class VisitTracker extends SingletonFactory {
 	}
 	
 	/**
-	 * Gets the last visit time for a whole object type.
+	 * Returns the last visit time of the given object type for the active user.
 	 * 
 	 * @param	string		$objectType
 	 * @return	integer
@@ -104,37 +114,74 @@ class VisitTracker extends SingletonFactory {
 	}
 	
 	/**
-	 * Gets the last visit time for a specific object.
+	 * Returns the last visit time of the object of the given object type and
+	 * with the given id for the active user.
 	 * 
 	 * @param	string		$objectType
 	 * @param	integer		$objectID
 	 * @return	integer
 	 */
 	public function getObjectVisitTime($objectType, $objectID) {
-		if (WCF::getUser()->userID) {
-			$sql = "SELECT	visitTime
-				FROM	wcf".WCF_N."_tracked_visit
-				WHERE	objectTypeID = ?
-					AND objectID = ?
-					AND userID = ?";
-			$statement = WCF::getDB()->prepareStatement($sql);
-			$statement->execute(array($this->getObjectTypeID($objectType), $objectID, WCF::getUser()->userID));
-			$row = $statement->fetchArray();
-			if ($row) return $row['visitTime'];
-		}
-		else {
-			if ($visitTime = WCF::getSession()->getVar('trackedUserVisit_'.$this->getObjectTypeID($objectType).'_'.$objectID)) {
-				return $visitTime;
-			}
-		}
+		$visiTimes = $this->getObjectVisitTimes($objectType, array($objectID));
 		
-		return $this->getVisitTime($objectType);
+		return $visiTimes[$objectID];
 	}
 	
 	/**
-	 * Deletes all tracked visits of a specific object type.
+	 * Returns the last visit times of the objects of the given object type
+	 * and with the given ids for the active user.
 	 * 
-	 * @param 	string		$objectType
+	 * @param	string			$objectType
+	 * @param	array<integer>		$objectIDs
+	 * @return	array<integer>
+	 */
+	public function getObjectVisitTimes($objectType, array $objectIDs) {
+		$visitTimes = array();
+		
+		if (WCF::getUser()->userID) {
+			$conditionBuilder = new PreparedStatementConditionBuilder();
+			$conditionBuilder->add("objectTypeID = ?", array($this->getObjectTypeID($objectType)));
+			$conditionBuilder->add("userID = ?", array(WCF::getUser()->userID));
+			$conditionBuilder->add("objectID IN (?)", array($objectIDs));
+			
+			$sql = "SELECT	objectID, visitTime
+				FROM	wcf".WCF_N."_tracked_visit
+				".$conditionBuilder;
+			$statement = WCF::getDB()->prepareStatement($sql);
+			$statement->execute($conditionBuilder->getParameters());
+			
+			while ($row = $statement->fetchArray()) {
+				$visitTimes[$row['objectID']] = $row['visitTime'];
+			}
+		}
+		else {
+			$objectTypeID = $this->getObjectTypeID($objectType);
+			
+			foreach ($objectIDs as $objectID) {
+				$visitTime = WCF::getSession()->getVar('trackedUserVisit_'.$objectTypeID.'_'.$objectID);
+				if ($visitTime) {
+					$visitTimes[$objectID] = $visitTime;
+				}
+			}
+		}
+		
+		if (count($visitTimes) != count($objectIDs)) {
+			$objectTypeVisitTime = $this->getVisitTime($objectType);
+			
+			foreach ($objectIDs as $objectID) {
+				if (!isset($visitTimes[$objectID])) {
+					$visitTimes[$objectID] = $objectTypeVisitTime;
+				}
+			}
+		}
+		
+		return $visitTimes;
+	}
+	
+	/**
+	 * Deletes all tracked visits of the object type with the given object type.
+	 * 
+	 * @param	string		$objectType
 	 */
 	public function deleteObjectVisits($objectType) {
 		if (WCF::getUser()->userID) {
