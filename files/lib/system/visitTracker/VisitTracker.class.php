@@ -122,9 +122,9 @@ class VisitTracker extends SingletonFactory {
 	 * @return	integer
 	 */
 	public function getObjectVisitTime($objectType, $objectID) {
-		$visiTimes = $this->getObjectVisitTimes($objectType, array($objectID));
+		$visitTimes = $this->getObjectVisitTimes($objectType, array($objectID));
 		
-		return $visiTimes[$objectID];
+		return $visitTimes[$objectID];
 	}
 	
 	/**
