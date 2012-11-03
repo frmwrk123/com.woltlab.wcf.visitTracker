@@ -9,24 +9,24 @@ use wcf\system\WCF;
 class VisitTracker extends SingletonFactory {
 	/**
 	 * default tracking lifetime
-	 * @var integer
+	 * @var	integer
 	 */
 	const DEFAULT_LIFETIME = 604800; // = one week
 	
 	/**
 	 * list of available object types
-	 * @var array
+	 * @var	array
 	 */
 	protected $availableObjectTypes = array();
 	
 	/**
 	 * user visits
-	 * @var array
+	 * @var	array
 	 */
 	protected $userVisits = null;
 	
 	/**
-	 * @see wcf\system\SingletonFactory::init()
+	 * @see	wcf\system\SingletonFactory::init()
 	 */
 	protected function init() {
 		// get available object types
