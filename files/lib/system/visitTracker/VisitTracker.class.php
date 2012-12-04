@@ -77,7 +77,7 @@ class VisitTracker extends SingletonFactory {
 					}
 					
 					// update storage data
-					UserStorageHandler::getInstance()->update(WCF::getUser()->userID, 'trackedUserVisits', serialize($this->userVisits), 1);
+					UserStorageHandler::getInstance()->update(WCF::getUser()->userID, 'trackedUserVisits', serialize($this->userVisits));
 				}
 				else {
 					$this->userVisits = @unserialize($data[WCF::getUser()->userID]);
@@ -206,7 +206,7 @@ class VisitTracker extends SingletonFactory {
 			$statement->execute(array($this->getObjectTypeID($objectType), WCF::getUser()->userID, $time));
 			
 			// reset storage
-			UserStorageHandler::getInstance()->reset(array(WCF::getUser()->userID), 'trackedUserVisits', 1);
+			UserStorageHandler::getInstance()->reset(array(WCF::getUser()->userID), 'trackedUserVisits');
 		}
 		else {
 			$this->getVisitTime($objectType);
